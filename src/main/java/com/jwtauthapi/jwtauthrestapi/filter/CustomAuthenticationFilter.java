@@ -35,12 +35,18 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        String username = request.getParameter("username");
-        String password = request.getParameter("password");
-        log.info("Username is: {}", username);
-        log.info("Password is: {}", password);
-        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, password);
-        return authenticationManager.authenticate(authenticationToken);
+
+
+        try {
+            UserRequest userRequest = new ObjectMapper().readValue(request.getInputStream(), UserRequest.class);
+            log.info("Username is: {}", userRequest.getUsername());
+            log.info("Password is: {}", userRequest.getPassword());
+            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userRequest.getUsername(), userRequest.getPassword());
+            return authenticationManager.authenticate(authenticationToken);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     @Override
@@ -67,8 +73,8 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
                 .withIssuer(request.getRequestURL().toString())
                 .sign(algorithm);
 
-//        response.setHeader("access_token", accessToken);
-//        response.setHeader("refresh_token", refreshToken);
+        response.setHeader("Authorization", "Bearer "+accessToken);
+        response.setHeader("refresh_token", refreshToken);
 
         Map<String, String> tokens = new HashMap<>();
         tokens.put("access_token", accessToken);
